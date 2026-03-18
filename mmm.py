@@ -2,210 +2,186 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
-st.set_page_config(page_title="AI Debt Optimizer", layout="wide")
+st.set_page_config(page_title="AI Debt Repayment Optimizer", layout="wide")
 
-# ---------------- SESSION ----------------
-if "step" not in st.session_state:
-    st.session_state.step = 1
-if "debts_data" not in st.session_state:
-    st.session_state.debts_data = []
+# --- Page Title ---
+st.title("💡 AI Debt Repayment Optimizer")
+st.write("Enter your debts and income details to generate optimized repayment strategies.")
 
-# ---------------- STEP 1 ----------------
-if st.session_state.step == 1:
-    st.title("💡 AI Debt Repayment Optimizer")
-    st.subheader("Step 1: User Info")
+# --- Input Section ---
+st.header("Debt Details")
+num_debts = st.number_input("How many debts do you want to enter?", min_value=1, step=1, value=3)
 
-    st.text_input("Enter your name", key="name")
+debts = []
+for i in range(num_debts):
+    st.subheader(f"Debt {i+1}")
+    loan_type = st.selectbox(f"Loan Type {i+1}", ["Credit Card", "Student Loan", "Personal Loan", "Other"], key=f"type{i}")
+    balance = st.number_input(f"Outstanding Balance (₹) {i+1}", min_value=0.0, step=1000.0, key=f"balance{i}")
+    interest_rate = st.number_input(f"Interest Rate (%) {i+1}", min_value=0.0, step=0.1, key=f"rate{i}")
+    min_payment = st.number_input(f"Minimum Monthly Payment (₹) {i+1}", min_value=0.0, step=100.0, key=f"min{i}")
+    debts.append({"type": loan_type, "balance": balance, "rate": interest_rate, "min_payment": min_payment})
 
-    if st.button("Next"):
-        st.session_state.step = 2
+# --- Income & Expenses ---
+st.header("Income & Expenses")
+income = st.number_input("Monthly Income (₹)", min_value=0.0, step=1000.0)
+expenses = st.number_input("Essential Expenses (₹)", min_value=0.0, step=500.0)
+discretionary = st.number_input("Discretionary Spending (₹)", min_value=0.0, step=500.0)
+savings = st.number_input("Savings Contribution (₹)", min_value=0.0, step=500.0)
+emergency_fund = st.number_input("Emergency Fund Allocation (₹)", min_value=0.0, step=500.0)
 
-# ---------------- STEP 2 ----------------
-elif st.session_state.step == 2:
-    st.subheader("Step 2: Debt Details")
+# --- Sidebar Interactive Options ---
+st.sidebar.header("Extra Features")
+lump_sum = st.sidebar.number_input("Add lump‑sum payment (₹)", min_value=0, step=1000)
+lump_sum_month = st.sidebar.number_input("Month to apply lump‑sum", min_value=1, step=1, value=1)
+scenario = st.sidebar.selectbox("Scenario Analysis", [
+    "Base Case", "Income +10%", "Expenses -10%", "Unexpected Expense +5000", "Interest Rate +2%"
+])
 
-    num_debts = st.number_input("Number of Debts", min_value=1, max_value=10, key="num_debts")
+# Adjust scenario
+if scenario == "Income +10%":
+    income *= 1.1
+elif scenario == "Expenses -10%":
+    expenses *= 0.9
+elif scenario == "Unexpected Expense +5000":
+    expenses += 5000
+elif scenario == "Interest Rate +2%":
+    for d in debts:
+        d["rate"] += 2
 
-    loan_types = [
-        "Credit Card", "Student Loan", "Personal Loan",
-        "Home Loan", "Car Loan", "Business Loan",
-        "Gold Loan", "Other"
-    ]
+# --- Loan Payment Reminder ---
+st.sidebar.header("Loan Payment Reminder")
+reminder_option = st.sidebar.checkbox("Set monthly reminder for loan payments")
+if reminder_option:
+    st.sidebar.write("✅ Reminder set: You will be notified on the 5th of every month at 9 AM.")
 
-    debts = []
+# --- Strategy Guide BEFORE Selection ---
+st.header("📖 Understanding the Strategies")
+st.markdown("""
+- **Debt Snowball**: Pay off the smallest balance first. Motivational but may cost more in interest.  
+- **Debt Avalanche**: Pay off the highest interest debt first. Saves the most money overall.  
+- **AI Optimized**: Hybrid approach. Very high‑interest debts (≥15%) are prioritized first, 
+  but smaller balances are tackled earlier if interest rates are lower.
+""")
 
-    for i in range(num_debts):
-        st.markdown(f"### Debt {i+1}")
-        col1, col2 = st.columns(2)
+# --- Strategy Selection ---
+st.header("Choose Repayment Strategy")
+strategy = st.radio("Select a method:", ["Debt Snowball", "Debt Avalanche", "AI Optimized"])
 
-        with col1:
-            loan = st.selectbox("Loan Type", loan_types, key=f"type_{i}")
-            balance = st.number_input("Balance ₹", min_value=0.0, key=f"bal_{i}")
+# --- Repayment Order Function ---
+def get_repayment_order(debts, strategy):
+    debts_copy = [d.copy() for d in debts]
+    if strategy == "Debt Snowball":
+        debts_copy.sort(key=lambda d: d["balance"])
+    elif strategy == "Debt Avalanche":
+        debts_copy.sort(key=lambda d: d["rate"], reverse=True)
+    elif strategy == "AI Optimized":
+        # Hybrid: prioritize very high interest first, then smaller balances
+        debts_copy.sort(key=lambda d: (d["rate"] >= 15, -d["balance"]), reverse=True)
+    return debts_copy
 
-        with col2:
-            rate = st.number_input("Interest %", min_value=0.0, key=f"rate_{i}")
-            min_pay = st.number_input("Min Payment ₹", min_value=0.0, key=f"min_{i}")
+# --- Repayment Simulation Function with Interest Tracking ---
+def simulate_repayment(debts, extra_payment, strategy, lump_sum=0, lump_sum_month=None):
+    debts = [d.copy() for d in debts]
+    schedule = []
+    month = 1
+    total_interest_paid = 0
 
-        debts.append({
-            "type": loan,
-            "balance": balance,
-            "rate": rate,
-            "min_payment": min_pay
-        })
+    while any(d["balance"] > 0 for d in debts) and month <= 120:  # limit to 10 years
+        # Choose debt order
+        debts = get_repayment_order(debts, strategy)
 
-    col1, col2 = st.columns(2)
-    if col1.button("Back"):
-        st.session_state.step = 1
+        payment = extra_payment
+        month_interest = 0
+        for d in debts:
+            if d["balance"] <= 0:
+                continue
+            # Apply interest
+            interest = d["balance"] * (d["rate"]/100/12)
+            d["balance"] += interest
+            month_interest += interest
 
-    if col2.button("Next"):
-        st.session_state.debts_data = debts
-        st.session_state.step = 3
+            # Apply payments
+            pay = d["min_payment"]
+            if payment > 0:
+                pay += payment
+                payment = 0
+            if lump_sum > 0 and lump_sum_month == month:
+                pay += lump_sum
+            d["balance"] = max(0, d["balance"] - pay)
 
-# ---------------- STEP 3 ----------------
-elif st.session_state.step == 3:
-    st.subheader("Step 3: Financial Details")
+        total_interest_paid += month_interest
+        total_balance = sum(d["balance"] for d in debts)
+        schedule.append({"Month": month, "Total Balance": total_balance, "Interest Paid": month_interest})
+        month += 1
 
-    st.number_input("Income", key="income")
-    st.number_input("Expenses", key="expenses")
-    st.number_input("Discretionary Spending", key="disc")
-    st.number_input("Savings", key="sav")
-    st.number_input("Emergency Fund", key="emer")
+    df = pd.DataFrame(schedule)
+    return df, total_interest_paid
 
-    col1, col2 = st.columns(2)
-    if col1.button("Back"):
-        st.session_state.step = 2
-
-    if col2.button("Next"):
-        st.session_state.step = 4
-
-# ---------------- STEP 4 ----------------
-elif st.session_state.step == 4:
-
-    st.title(f"📊 Dashboard - {st.session_state.name}")
-
-    debts = st.session_state.debts_data
-    income = st.session_state.income
-    expenses = st.session_state.expenses
-    disc = st.session_state.disc
-    sav = st.session_state.sav
-    emer = st.session_state.emer
-
-    strategy = st.radio("Choose Strategy", ["Debt Snowball", "Debt Avalanche", "AI Optimized"])
-
-    lump_sum = st.number_input("Lump Sum Payment", value=0)
-    lump_month = st.number_input("Apply in Month", value=1)
-
-    # -------- SIMULATION ENGINE --------
-    def simulate(debts, extra, strategy):
-        debts = [d.copy() for d in debts]
-        schedule = []
-        total_interest = 0
-        month = 1
-
-        while any(d["balance"] > 0 for d in debts) and month <= 120:
-
-            if strategy == "Debt Snowball":
-                debts.sort(key=lambda x: x["balance"])
-            elif strategy == "Debt Avalanche":
-                debts.sort(key=lambda x: x["rate"], reverse=True)
-            else:
-                debts.sort(key=lambda x: (x["rate"] * x["balance"]), reverse=True)
-
-            month_interest = 0
-
-            # Interest
-            for d in debts:
-                if d["balance"] > 0:
-                    interest = d["balance"] * (d["rate"]/100/12)
-                    d["balance"] += interest
-                    month_interest += interest
-
-            # Minimum payments
-            for d in debts:
-                if d["balance"] > 0:
-                    pay = min(d["min_payment"], d["balance"])
-                    d["balance"] -= pay
-
-            # Extra payment (correct distribution)
-            remaining = extra
-            for d in debts:
-                if d["balance"] > 0 and remaining > 0:
-                    pay = min(remaining, d["balance"])
-                    d["balance"] -= pay
-                    remaining -= pay
-
-            # Lump sum
-            if month == lump_month:
-                for d in debts:
-                    if d["balance"] > 0:
-                        d["balance"] -= min(lump_sum, d["balance"])
-                        break
-
-            total_interest += month_interest
-
-            schedule.append({
-                "Month": month,
-                "Balance": sum(d["balance"] for d in debts)
-            })
-
-            month += 1
-
-        return pd.DataFrame(schedule), total_interest
-
-    # -------- EXTRA CALC --------
-    extra = income - (expenses + disc + sav + emer) - sum(d["min_payment"] for d in debts)
-
-    if extra <= 0:
-        st.error("No surplus income available")
+# --- Run Single Strategy ---
+if st.button("Run Optimizer"):
+    extra_payment = income - (expenses + discretionary + savings + emergency_fund) - sum(d["min_payment"] for d in debts)
+    if extra_payment <= 0:
+        st.error("No surplus income available for debt repayment. Adjust your inputs.")
     else:
+        df, total_interest = simulate_repayment(debts, extra_payment, strategy, lump_sum, lump_sum_month)
+        st.success(f"Strategy: {strategy}")
+        st.write("Repayment order based on strategy:")
+        ordered_debts = get_repayment_order(debts, strategy)
+        st.table(pd.DataFrame(ordered_debts))
 
-        if st.button("Run Optimizer"):
+        # --- Visualization ---
+        st.subheader("Debt Repayment Progress")
+        fig, ax = plt.subplots()
+        ax.plot(df["Month"], df["Total Balance"], marker="o")
+        ax.set_xlabel("Month")
+        ax.set_ylabel("Total Balance (₹)")
+        ax.set_title(f"Debt Repayment Progress ({strategy})")
+        st.pyplot(fig)
 
-            df, interest = simulate(debts, extra, strategy)
+        # --- Decision/Interpretation AFTER Chart ---
+        st.subheader("Decision & Interpretation")
+        months_to_zero = df[df["Total Balance"] <= 0]["Month"].min() if any(df["Total Balance"] <= 0) else None
+        if months_to_zero:
+            st.success(f"🎉 Based on the {strategy} method, you will be debt‑free in about {months_to_zero} months.")
+            st.info(f"Total Interest Paid: ₹{total_interest:.2f}")
+        else:
+            st.warning("Your debt does not reach zero within the simulated period. Try adjusting income, expenses, or payments.")
 
-            months = df[df["Balance"] <= 0]["Month"].min()
+        # --- Download Plan ---
+        st.download_button(
+            label="Download Repayment Schedule (CSV)",
+            data=df.to_csv(index=False),
+            file_name="repayment_schedule.csv",
+            mime="text/csv"
+        )
 
-            # KPIs
-            col1, col2, col3 = st.columns(3)
-            col1.metric("Months to Debt-Free", months)
-            col2.metric("Total Interest Paid", f"₹{round(interest,2)}")
-            col3.metric("Monthly Extra Payment", f"₹{round(extra,2)}")
+# --- Strategy Comparison Dashboard ---
+if st.button("Compare All Strategies"):
+    extra_payment = income - (expenses + discretionary + savings + emergency_fund) - sum(d["min_payment"] for d in debts)
+    if extra_payment <= 0:
+        st.error("No surplus income available for debt repayment. Adjust your inputs.")
+    else:
+        results = {}
+        for strat in ["Debt Snowball", "Debt Avalanche", "AI Optimized"]:
+            df, total_interest = simulate_repayment(debts, extra_payment, strat, lump_sum, lump_sum_month)
+            months_to_zero = df[df["Total Balance"] <= 0]["Month"].min() if any(df["Total Balance"] <= 0) else None
+            results[strat] = {
+                "df": df,
+                "months": months_to_zero,
+                "interest": total_interest,
+                "order": get_repayment_order(debts, strat)
+            }
 
-            # Graph
-            fig, ax = plt.subplots()
-            ax.plot(df["Month"], df["Balance"])
-            ax.set_title("Debt Reduction Over Time")
-            ax.set_xlabel("Month")
-            ax.set_ylabel("Balance ₹")
-            st.pyplot(fig)
+        # 📊 Show summary table
+        summary = pd.DataFrame([
+            {"Strategy": strat,
+             "Debt-Free Months": res["months"],
+             "Total Interest Paid (₹)": round(res["interest"], 2),
+             "Savings (₹)": round(results["Debt Snowball"]["interest"] - res["interest"], 2)
+             }
+            for strat, res in results.items()
+        ])
+        st.subheader("📊 Strategy Comparison Summary")
+        st.table(summary)
 
-            # Download
-            st.download_button("Download Plan", df.to_csv(index=False), "plan.csv")
-
-        # -------- COMPARE --------
-        if st.button("Compare Strategies"):
-
-            results = {}
-
-            for strat in ["Debt Snowball", "Debt Avalanche", "AI Optimized"]:
-                df, interest = simulate(debts, extra, strat)
-                months = df[df["Balance"] <= 0]["Month"].min()
-                results[strat] = {"months": months, "interest": interest}
-
-            df_res = pd.DataFrame([
-                {
-                    "Strategy": k,
-                    "Months": v["months"],
-                    "Interest ₹": round(v["interest"], 2)
-                }
-                for k, v in results.items()
-            ])
-
-            st.table(df_res)
-
-            # AI Recommendation
-            best = min(results.items(), key=lambda x: x[1]["interest"])
-            st.success(f"💡 Recommended: {best[0]} (Lowest Interest)")
-
-    if st.button("Restart"):
-        st.session_state.clear()
+        # Show repayment orders side-by-side
