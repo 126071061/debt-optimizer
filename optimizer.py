@@ -169,4 +169,4 @@ if st.button("Compare All Strategies"):
         best_interest = min(results.items(), key=lambda x: x[1]["interest"])
         fastest = min(results.items(), key=lambda x: x[1]["months"] if x[1]["months"] else float("inf"))
         st.write(f"- **Lowest Interest Paid**: {best_interest[0]} strategy (₹{best_interest[1]['interest']:.2f})")
-        st.write(f"- **Fastest Debt-Free**:
+        st.write(f"- **Fastest Debt-Free**: {fastest[0]} strategy ({fastest[1]['months']} months)")
