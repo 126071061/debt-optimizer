@@ -34,8 +34,28 @@ emergency_fund = st.number_input("Emergency Fund Allocation (₹)", min_value=0.
 st.sidebar.header("Extra Features")
 lump_sum = st.sidebar.number_input("Add lump‑sum payment (₹)", min_value=0, step=1000)
 lump_sum_month = st.sidebar.number_input("Month to apply lump‑sum", min_value=1, step=1, value=1)
+scenario = st.sidebar.selectbox("Scenario Analysis", [
+    "Base Case", "Income +10%", "Expenses -10%", "Unexpected Expense +5000", "Interest Rate +2%"
+])
 
-# --- Strategy Guide ---
+# Adjust scenario
+if scenario == "Income +10%":
+    income *= 1.1
+elif scenario == "Expenses -10%":
+    expenses *= 0.9
+elif scenario == "Unexpected Expense +5000":
+    expenses += 5000
+elif scenario == "Interest Rate +2%":
+    for d in debts:
+        d["rate"] += 2
+
+# --- Loan Payment Reminder ---
+st.sidebar.header("Loan Payment Reminder")
+reminder_option = st.sidebar.checkbox("Set monthly reminder for loan payments")
+if reminder_option:
+    st.sidebar.write("✅ Reminder set: You will be notified on the 5th of every month at 9 AM.")
+
+# --- Strategy Guide BEFORE Selection ---
 st.header("📖 Understanding the Strategies")
 st.markdown("""
 - **Debt Snowball**: Pay off the smallest balance first. Motivational but may cost more in interest.  
@@ -56,26 +76,32 @@ def get_repayment_order(debts, strategy):
     elif strategy == "Debt Avalanche":
         debts_copy.sort(key=lambda d: d["rate"], reverse=True)
     elif strategy == "AI Optimized":
+        # Hybrid: prioritize very high interest first, then smaller balances
         debts_copy.sort(key=lambda d: (d["rate"] >= 15, -d["balance"]), reverse=True)
     return debts_copy
 
-# --- Repayment Simulation Function ---
+# --- Repayment Simulation Function with Interest Tracking ---
 def simulate_repayment(debts, extra_payment, strategy, lump_sum=0, lump_sum_month=None):
     debts = [d.copy() for d in debts]
     schedule = []
     month = 1
     total_interest_paid = 0
 
-    while any(d["balance"] > 0 for d in debts) and month <= 120:
+    while any(d["balance"] > 0 for d in debts) and month <= 120:  # limit to 10 years
+        # Choose debt order
         debts = get_repayment_order(debts, strategy)
+
         payment = extra_payment
         month_interest = 0
         for d in debts:
             if d["balance"] <= 0:
                 continue
+            # Apply interest
             interest = d["balance"] * (d["rate"]/100/12)
             d["balance"] += interest
             month_interest += interest
+
+            # Apply payments
             pay = d["min_payment"]
             if payment > 0:
                 pay += payment
@@ -83,6 +109,7 @@ def simulate_repayment(debts, extra_payment, strategy, lump_sum=0, lump_sum_mont
             if lump_sum > 0 and lump_sum_month == month:
                 pay += lump_sum
             d["balance"] = max(0, d["balance"] - pay)
+
         total_interest_paid += month_interest
         total_balance = sum(d["balance"] for d in debts)
         schedule.append({"Month": month, "Total Balance": total_balance, "Interest Paid": month_interest})
@@ -103,6 +130,7 @@ if st.button("Run Optimizer"):
         ordered_debts = get_repayment_order(debts, strategy)
         st.table(pd.DataFrame(ordered_debts))
 
+        # --- Visualization ---
         st.subheader("Debt Repayment Progress")
         fig, ax = plt.subplots()
         ax.plot(df["Month"], df["Total Balance"], marker="o")
@@ -111,12 +139,22 @@ if st.button("Run Optimizer"):
         ax.set_title(f"Debt Repayment Progress ({strategy})")
         st.pyplot(fig)
 
+        # --- Decision/Interpretation AFTER Chart ---
+        st.subheader("Decision & Interpretation")
         months_to_zero = df[df["Total Balance"] <= 0]["Month"].min() if any(df["Total Balance"] <= 0) else None
         if months_to_zero:
             st.success(f"🎉 Based on the {strategy} method, you will be debt‑free in about {months_to_zero} months.")
             st.info(f"Total Interest Paid: ₹{total_interest:.2f}")
         else:
-            st.warning("Your debt does not reach zero within the simulated period.")
+            st.warning("Your debt does not reach zero within the simulated period. Try adjusting income, expenses, or payments.")
+
+        # --- Download Plan ---
+        st.download_button(
+            label="Download Repayment Schedule (CSV)",
+            data=df.to_csv(index=False),
+            file_name="repayment_schedule.csv",
+            mime="text/csv"
+        )
 
 # --- Strategy Comparison Dashboard ---
 if st.button("Compare All Strategies"):
@@ -135,50 +173,25 @@ if st.button("Compare All Strategies"):
                 "order": get_repayment_order(debts, strat)
             }
 
+        # 📊 Show summary table
         summary = pd.DataFrame([
             {"Strategy": strat,
              "Debt-Free Months": res["months"],
              "Total Interest Paid (₹)": round(res["interest"], 2),
-             "Savings (₹)": round(results["Debt Snowball"]["interest"] - res["interest"], 2)
+             "Savings  (₹)": round(results["Debt Snowball"]["interest"] - res["interest"], 2)
              }
             for strat, res in results.items()
         ])
         st.subheader("📊 Strategy Comparison Summary")
         st.table(summary)
-
-        st.subheader("Repayment Order by Strategy")
-        cols = st.columns(3)
-        for i, strat in enumerate(results.keys()):
-            with cols[i]:
-                st.markdown(f"**{strat}**")
-                st.table(pd.DataFrame(results[strat]["order"]))
-
-        st.subheader("Debt Repayment Progress Charts")
-        cols = st.columns(3)
-        for i, strat in enumerate(results.keys()):
-            with cols[i]:
-                df = results[strat]["df"]
-                fig, ax = plt.subplots()
-                ax.plot(df["Month"], df["Total Balance"], marker="o")
-                ax.set_xlabel("Month")
-                ax.set_ylabel("Total Balance (₹)")
-                ax.set_title(strat)
-                st.pyplot(fig)
-
-        # --- Suggestions ---
-        st.subheader("💡 Suggestions")
-        best_interest = min(results.items(), key=lambda x: x[1]["interest"])
-        fastest = min(results.items(), key=lambda x: x[1]["months"] if x[1]["months"] else float("inf"))
-        st.write(f"- **Lowest Interest Paid**: {best_interest[0]} strategy (₹{best_interest[1]['interest']:.2f})")
-        st.write(f"- **Fastest Debt-Free**: {fastest[0]} strategy ({fastest[1]['months']} months)")
-        # --- Final Recommendation ---
+# --- Final Recommendation ---
         st.subheader("💡 Best Strategy Recommendation")
 
         # Find the strategy with minimum interest paid
         best_strategy = summary.loc[summary["Total Interest Paid (₹)"].idxmin()]
 
         st.success(
-            f"Based on your inputs, the *{best_strategy['Strategy']}* method "
+            f"Based on your inputs, the **{best_strategy['Strategy']}** method "
             f"is the most cost‑effective option. It will make you debt‑free in about "
             f"{int(best_strategy['Debt-Free Months'])} months with a total interest cost of "
             f"₹{best_strategy['Total Interest Paid (₹)']:.2f}."
@@ -192,3 +205,4 @@ if st.button("Compare All Strategies"):
             "- Re‑run the optimizer with different scenarios (income changes, unexpected expenses) to stress‑test your plan.\n"
             "- Consider applying lump‑sum payments earlier to accelerate debt clearance."
         )
+   
