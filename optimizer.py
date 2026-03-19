@@ -207,8 +207,8 @@ for idx, d in enumerate(debts):
     schedule.append({"Month": month, "Total Balance": total_balance, "Interest Paid": month_interest})
     month += 1
 
-    df = pd.DataFrame(schedule)
-    return df, total_interest_paid
+df = pd.DataFrame(schedule)
+return df, total_interest_paid
 
 # --- Run Single Strategy ---
 if st.button("Run Optimizer"):
