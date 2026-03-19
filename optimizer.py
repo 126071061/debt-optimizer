@@ -172,7 +172,7 @@ if st.button("Run Optimizer"):
             file_name="repayment_schedule.csv",
             mime="text/csv"
         )
-if income > 0 and total_debt > income * 10:
+if income > 0 and debts > income * 10:
     st.warning("⚠️ High debt risk! Your debt is significantly higher than your income.")
 # --- Strategy Comparison Dashboard ---
 if st.button("Compare All Strategies"):
