@@ -57,12 +57,41 @@ st.markdown(
     unsafe_allow_html=True
 )
 st.set_page_config(
-    page_title="AI Debt Repayment Optimizer",
+    page_title="💰AI Debt Repayment Optimizer",
     page_icon="💰",  # you can change emoji
     layout="wide"
 )
+/* 🎯 Sidebar (Extra Features) - Light Background */
+section[data-testid="stSidebar"] {
+    background-color: #f4f9ff;   /* light blue */
+    padding: 15px;
+    border-right: 2px solid #d6eaf8;
+}
+
+/* Sidebar text color fix */
+section[data-testid="stSidebar"] h1,
+section[data-testid="stSidebar"] h2,
+section[data-testid="stSidebar"] h3,
+section[data-testid="stSidebar"] label,
+section[data-testid="stSidebar"] p {
+    color: #1b4f72 !important;   /* dark blue text */
+}
+
+/* Sidebar inputs */
+section[data-testid="stSidebar"] .stTextInput input,
+section[data-testid="stSidebar"] .stNumberInput input,
+section[data-testid="stSidebar"] .stSelectbox div {
+    background-color: white;
+    color: black;
+}
+
+/* Sidebar button (optional improvement) */
+section[data-testid="stSidebar"] .stButton>button {
+    background-color: #3498db;
+    color: white;
+}
 # --- Page Title ---
-st.title(" AI Debt Repayment Optimizer")
+st.title("💰AI Debt Repayment Optimizer")
 st.write("Enter your debts and income details to generate optimized repayment strategies.")
 # --- User Profile Section ---
 st.header("👤 User Profile")
