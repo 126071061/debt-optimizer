@@ -205,7 +205,7 @@ for idx, d in enumerate(debts):
     total_interest_paid += month_interest
     total_balance = sum(d["balance"] for d in debts)
     schedule.append({"Month": month, "Total Balance": total_balance, "Interest Paid": month_interest})
-     month += 1
+    month += 1
 
     df = pd.DataFrame(schedule)
     return df, total_interest_paid
