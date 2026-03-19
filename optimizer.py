@@ -4,35 +4,63 @@ import matplotlib.pyplot as plt
 st.markdown(
     """
     <style>
+    
+    /* 🌐 Main App Background */
     .stApp {
-        background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
-        color: white;
+        background-color: #f7f9fc;
     }
 
-    h1, h2, h3, h4, h5, h6, p, label {
-        color: white !important;
+    /* 🧾 Text styling */
+    h1, h2, h3, h4 {
+        color: #2c3e50;
     }
 
+    p, label {
+        color: #34495e;
+    }
+
+    /* 🎯 Sidebar (Extra Features) */
+    section[data-testid="stSidebar"] {
+        background-color: #eaf2f8;
+        padding: 15px;
+        border-right: 2px solid #d6eaf8;
+    }
+
+    /* Sidebar headings */
+    section[data-testid="stSidebar"] h1,
+    section[data-testid="stSidebar"] h2,
+    section[data-testid="stSidebar"] h3 {
+        color: #1b4f72;
+    }
+
+    /* 🔘 Buttons */
     .stButton>button {
-        background-color: #00c6ff;
+        background-color: #3498db;
         color: white;
-        border-radius: 10px;
+        border-radius: 8px;
         height: 3em;
         width: 100%;
-        font-size: 16px;
+        font-size: 15px;
     }
 
+    /* 📥 Inputs */
     .stTextInput>div>div>input,
-    .stNumberInput input {
-        background-color: #f0f0f0;
-        color: black;
+    .stNumberInput input,
+    .stSelectbox div {
+        background-color: #ffffff;
+        color: #2c3e50;
+        border-radius: 6px;
     }
+
     </style>
     """,
     unsafe_allow_html=True
 )
-st.set_page_config(page_title="AI Debt Repayment Optimizer", layout="wide")
-
+st.set_page_config(
+    page_title="AI Debt Repayment Optimizer",
+    page_icon="💰",  # you can change emoji
+    layout="wide"
+)
 # --- Page Title ---
 st.title(" AI Debt Repayment Optimizer")
 st.write("Enter your debts and income details to generate optimized repayment strategies.")
