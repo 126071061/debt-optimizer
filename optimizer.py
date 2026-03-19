@@ -1,9 +1,53 @@
-
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="AI Debt Repayment Optimizer", layout="wide")
+
+# --- Custom Styling ---
+custom_style = """
+<style>
+[data-testid="stAppViewContainer"] {
+    background: linear-gradient(135deg, #f0f4ff, #dbe9f4);
+    color: #2c3e50;
+}
+[data-testid="stHeader"] {
+    background: rgba(0,0,0,0);
+}
+[data-testid="stSidebar"] {
+    background: #f7f9fc;
+    border-right: 3px solid #4a90e2;
+}
+.stTable tbody tr:nth-child(odd) {
+    background-color: #f9f9f9;
+}
+.stTable tbody tr:hover {
+    background-color: #e6f7ff;
+}
+button {
+    background-color: #4a90e2 !important;
+    color: white !important;
+    border-radius: 8px !important;
+    font-weight: bold !important;
+}
+h1, h2, h3 {
+    color: #2c3e50;
+}
+.suggestion-green {
+    background-color: #d4edda;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+.suggestion-blue {
+    background-color: #cce5ff;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+</style>
+"""
+st.markdown(custom_style, unsafe_allow_html=True)
 
 # --- Page Title ---
 st.title("💡 AI Debt Repayment Optimizer")
@@ -55,7 +99,7 @@ reminder_option = st.sidebar.checkbox("Set monthly reminder for loan payments")
 if reminder_option:
     st.sidebar.write("✅ Reminder set: You will be notified on the 5th of every month at 9 AM.")
 
-# --- Strategy Guide BEFORE Selection ---
+# --- Strategy Guide ---
 st.header("📖 Understanding the Strategies")
 st.markdown("""
 - **Debt Snowball**: Pay off the smallest balance first. Motivational but may cost more in interest.  
@@ -76,32 +120,26 @@ def get_repayment_order(debts, strategy):
     elif strategy == "Debt Avalanche":
         debts_copy.sort(key=lambda d: d["rate"], reverse=True)
     elif strategy == "AI Optimized":
-        # Hybrid: prioritize very high interest first, then smaller balances
         debts_copy.sort(key=lambda d: (d["rate"] >= 15, -d["balance"]), reverse=True)
     return debts_copy
 
-# --- Repayment Simulation Function with Interest Tracking ---
+# --- Repayment Simulation Function ---
 def simulate_repayment(debts, extra_payment, strategy, lump_sum=0, lump_sum_month=None):
     debts = [d.copy() for d in debts]
     schedule = []
     month = 1
     total_interest_paid = 0
 
-    while any(d["balance"] > 0 for d in debts) and month <= 120:  # limit to 10 years
-        # Choose debt order
+    while any(d["balance"] > 0 for d in debts) and month <= 120:
         debts = get_repayment_order(debts, strategy)
-
         payment = extra_payment
         month_interest = 0
         for d in debts:
             if d["balance"] <= 0:
                 continue
-            # Apply interest
             interest = d["balance"] * (d["rate"]/100/12)
             d["balance"] += interest
             month_interest += interest
-
-            # Apply payments
             pay = d["min_payment"]
             if payment > 0:
                 pay += payment
@@ -109,7 +147,6 @@ def simulate_repayment(debts, extra_payment, strategy, lump_sum=0, lump_sum_mont
             if lump_sum > 0 and lump_sum_month == month:
                 pay += lump_sum
             d["balance"] = max(0, d["balance"] - pay)
-
         total_interest_paid += month_interest
         total_balance = sum(d["balance"] for d in debts)
         schedule.append({"Month": month, "Total Balance": total_balance, "Interest Paid": month_interest})
@@ -130,7 +167,6 @@ if st.button("Run Optimizer"):
         ordered_debts = get_repayment_order(debts, strategy)
         st.table(pd.DataFrame(ordered_debts))
 
-        # --- Visualization ---
         st.subheader("Debt Repayment Progress")
         fig, ax = plt.subplots()
         ax.plot(df["Month"], df["Total Balance"], marker="o")
@@ -139,22 +175,12 @@ if st.button("Run Optimizer"):
         ax.set_title(f"Debt Repayment Progress ({strategy})")
         st.pyplot(fig)
 
-        # --- Decision/Interpretation AFTER Chart ---
-        st.subheader("Decision & Interpretation")
         months_to_zero = df[df["Total Balance"] <= 0]["Month"].min() if any(df["Total Balance"] <= 0) else None
         if months_to_zero:
             st.success(f"🎉 Based on the {strategy} method, you will be debt‑free in about {months_to_zero} months.")
             st.info(f"Total Interest Paid: ₹{total_interest:.2f}")
         else:
-            st.warning("Your debt does not reach zero within the simulated period. Try adjusting income, expenses, or payments.")
-
-        # --- Download Plan ---
-        st.download_button(
-            label="Download Repayment Schedule (CSV)",
-            data=df.to_csv(index=False),
-            file_name="repayment_schedule.csv",
-            mime="text/csv"
-        )
+            st.warning("Your debt does not reach zero within the simulated period.")
 
 # --- Strategy Comparison Dashboard ---
 if st.button("Compare All Strategies"):
@@ -164,102 +190,4 @@ if st.button("Compare All Strategies"):
     else:
         results = {}
         for strat in ["Debt Snowball", "Debt Avalanche", "AI Optimized"]:
-            df, total_interest = simulate_repayment(debts, extra_payment, strat, lump_sum, lump_sum_month)
-            months_to_zero = df[df["Total Balance"] <= 0]["Month"].min() if any(df["Total Balance"] <= 0) else None
-            results[strat] = {
-                "df": df,
-                "months": months_to_zero,
-                "interest": total_interest,
-                "order": get_repayment_order(debts, strat)
-            }
-
-        # 📊 Show summary table
-        summary = pd.DataFrame([
-            {"Strategy": strat,
-             "Debt-Free Months": res["months"],
-             "Total Interest Paid (₹)": round(res["interest"], 2),
-             "Savings  (₹)": round(results["Debt Snowball"]["interest"] - res["interest"], 2)
-             }
-            for strat, res in results.items()
-        ])
-        st.subheader("📊 Strategy Comparison Summary")
-        st.table(summary)
-# --- Final Recommendation ---
-        st.subheader("💡 Best Strategy Recommendation")
-
-        # Find the strategy with minimum interest paid
-        best_strategy = summary.loc[summary["Total Interest Paid (₹)"].idxmin()]
-
-        st.success(
-            f"Based on your inputs, the **{best_strategy['Strategy']}** method "
-            f"is the most cost‑effective option. It will make you debt‑free in about "
-            f"{int(best_strategy['Debt-Free Months'])} months with a total interest cost of "
-            f"₹{best_strategy['Total Interest Paid (₹)']:.2f}."
-        )
-
-        # Suggestions for the user
-        st.info(
-            "👉 Suggestions:\n"
-            "- Stick to the recommended strategy for maximum savings.\n"
-            "- If you prefer faster psychological wins, Snowball may still be motivating even if it costs more.\n"
-            "- Re‑run the optimizer with different scenarios (income changes, unexpected expenses) to stress‑test your plan.\n"
-            "- Consider applying lump‑sum payments earlier to accelerate debt clearance."
-        )
-   import streamlit as st
-import pandas as pd
-import matplotlib.pyplot as plt
-
-st.set_page_config(page_title="AI Debt Repayment Optimizer", layout="wide")
-
-# --- Custom Styling ---
-custom_style = """
-<style>
-[data-testid="stAppViewContainer"] {
-    background: linear-gradient(135deg, #f0f4ff, #dbe9f4);
-    color: #2c3e50;
-}
-[data-testid="stHeader"] {
-    background: rgba(0,0,0,0);
-}
-[data-testid="stSidebar"] {
-    background: #f7f9fc;
-    border-right: 3px solid #4a90e2;
-}
-.stTable tbody tr:nth-child(odd) {
-    background-color: #f9f9f9;
-}
-.stTable tbody tr:hover {
-    background-color: #e6f7ff;
-}
-button {
-    background-color: #4a90e2 !important;
-    color: white !important;
-    border-radius: 8px !important;
-    font-weight: bold !important;
-}
-h1, h2, h3 {
-    color: #2c3e50;
-}
-.suggestion-green {
-    background-color: #d4edda;
-    padding: 10px;
-    border-radius: 8px;
-    margin-bottom: 10px;
-}
-.suggestion-blue {
-    background-color: #cce5ff;
-    padding: 10px;
-    border-radius: 8px;
-    margin-bottom: 10px;
-}
-</style>
-"""
-st.markdown(custom_style, unsafe_allow_html=True)
-st.markdown(f"""
-<div class="suggestion-green">
-💡 <b>Lowest Interest Paid:</b> {best_interest[0]} strategy (₹{best_interest[1]['interest']:.2f})
-</div>
-<div class="suggestion-blue">
-🚀 <b>Fastest Debt-Free:</b> {fastest[0]} strategy ({fastest[1]['months']} months)
-</div>
-""", unsafe_allow_html=True)
+            df, total_interest = simulate_repayment(debts, extra_payment, strat
