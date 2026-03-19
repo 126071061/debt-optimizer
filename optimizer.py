@@ -178,7 +178,7 @@ def simulate_repayment(debts, extra_payment, strategy, lump_sum=0, lump_sum_mont
         month_interest = 0
         extra = extra_payment
 
-for idx, d in enumerate(debts):
+   for idx, d in enumerate(debts):
     if d["balance"] <= 0:
         continue
 
