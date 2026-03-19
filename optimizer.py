@@ -5,26 +5,23 @@ st.markdown(
     """
     <style>
 
-    /* 🌐 Main App Background */
+    /* 🌐 FULL APP BACKGROUND */
     .stApp {
-        background: linear-gradient(to right, #eef2f7, #f9fbfd);
+        background: linear-gradient(135deg, #1e3c72, #2a5298, #6a11cb);
+        color: white;
     }
 
-    /* 🧾 Text Styling */
-    h1, h2, h3, h4 {
-        color: #2c3e50;
-        font-weight: 600;
+    /* 🧾 TEXT */
+    h1, h2, h3, h4, h5, h6, p, label {
+        color: white !important;
     }
 
-    p, label {
-        color: #34495e;
-    }
-
-    /* 🎯 Sidebar (Extra Features) */
+    /* 🎯 SIDEBAR (EXTRA FEATURES) */
     section[data-testid="stSidebar"] {
-        background: linear-gradient(to bottom, #dfe9f3, #ffffff);
+        background: linear-gradient(180deg, #2c3e50, #4ca1af);
+        color: white;
         padding: 15px;
-        border-right: 1px solid #d6eaf8;
+        border-right: 2px solid rgba(255,255,255,0.2);
     }
 
     /* Sidebar text */
@@ -33,39 +30,40 @@ st.markdown(
     section[data-testid="stSidebar"] h3,
     section[data-testid="stSidebar"] label,
     section[data-testid="stSidebar"] p {
-        color: #2c3e50 !important;
+        color: white !important;
     }
 
-    /* 🔘 Buttons */
+    /* 🔘 BUTTONS */
     .stButton>button {
-        background-color: #3498db;
+        background: linear-gradient(to right, #00c6ff, #0072ff);
         color: white;
         border-radius: 10px;
         height: 3em;
         width: 100%;
-        font-size: 15px;
+        font-size: 16px;
         border: none;
     }
 
-    .stButton>button:hover {
-        background-color: #2980b9;
-    }
-
-    /* 📥 Inputs */
+    /* 📥 INPUT BOXES */
     .stTextInput>div>div>input,
     .stNumberInput input,
     .stSelectbox div {
-        background-color: white;
-        color: #2c3e50;
+        background-color: rgba(255,255,255,0.9);
+        color: black;
         border-radius: 6px;
-        border: 1px solid #dcdcdc;
     }
 
-    /* 📊 Tables */
+    /* 📊 TABLES */
     .stDataFrame {
-        background-color: white;
+        background-color: rgba(255,255,255,0.1);
+        color: white;
+    }
+
+    /* 📦 CARD EFFECT (optional nice touch) */
+    .css-1d391kg {
+        background-color: rgba(255,255,255,0.05);
+        padding: 15px;
         border-radius: 10px;
-        padding: 10px;
     }
 
     </style>
