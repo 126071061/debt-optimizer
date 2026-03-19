@@ -1,6 +1,77 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+st.markdown(
+    """
+    <style>
+
+    /* 🌐 Main App Background */
+    .stApp {
+        background: linear-gradient(to right, #eef2f7, #f9fbfd);
+    }
+
+    /* 🧾 Text Styling */
+    h1, h2, h3, h4 {
+        color: #2c3e50;
+        font-weight: 600;
+    }
+
+    p, label {
+        color: #34495e;
+    }
+
+    /* 🎯 Sidebar (Extra Features) */
+    section[data-testid="stSidebar"] {
+        background: linear-gradient(to bottom, #dfe9f3, #ffffff);
+        padding: 15px;
+        border-right: 1px solid #d6eaf8;
+    }
+
+    /* Sidebar text */
+    section[data-testid="stSidebar"] h1,
+    section[data-testid="stSidebar"] h2,
+    section[data-testid="stSidebar"] h3,
+    section[data-testid="stSidebar"] label,
+    section[data-testid="stSidebar"] p {
+        color: #2c3e50 !important;
+    }
+
+    /* 🔘 Buttons */
+    .stButton>button {
+        background-color: #3498db;
+        color: white;
+        border-radius: 10px;
+        height: 3em;
+        width: 100%;
+        font-size: 15px;
+        border: none;
+    }
+
+    .stButton>button:hover {
+        background-color: #2980b9;
+    }
+
+    /* 📥 Inputs */
+    .stTextInput>div>div>input,
+    .stNumberInput input,
+    .stSelectbox div {
+        background-color: white;
+        color: #2c3e50;
+        border-radius: 6px;
+        border: 1px solid #dcdcdc;
+    }
+
+    /* 📊 Tables */
+    .stDataFrame {
+        background-color: white;
+        border-radius: 10px;
+        padding: 10px;
+    }
+
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 # --- Page Title ---
 st.title("💰AI Debt Repayment Optimizer")
 st.write("Enter your debts and income details to generate optimized repayment strategies.")
