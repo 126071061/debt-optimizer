@@ -202,10 +202,10 @@ for idx, d in enumerate(debts):
     # Reduce balance
     d["balance"] = max(0, d["balance"] - pay)
 
-        total_interest_paid += month_interest
-        total_balance = sum(d["balance"] for d in debts)
-        schedule.append({"Month": month, "Total Balance": total_balance, "Interest Paid": month_interest})
-        month += 1
+    total_interest_paid += month_interest
+    total_balance = sum(d["balance"] for d in debts)
+    schedule.append({"Month": month, "Total Balance": total_balance, "Interest Paid": month_interest})
+     month += 1
 
     df = pd.DataFrame(schedule)
     return df, total_interest_paid
