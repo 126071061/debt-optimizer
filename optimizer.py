@@ -1,7 +1,36 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+        color: white;
+    }
 
+    h1, h2, h3, h4, h5, h6, p, label {
+        color: white !important;
+    }
+
+    .stButton>button {
+        background-color: #00c6ff;
+        color: white;
+        border-radius: 10px;
+        height: 3em;
+        width: 100%;
+        font-size: 16px;
+    }
+
+    .stTextInput>div>div>input,
+    .stNumberInput input {
+        background-color: #f0f0f0;
+        color: black;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 st.set_page_config(page_title="AI Debt Repayment Optimizer", layout="wide")
 
 # --- Page Title ---
