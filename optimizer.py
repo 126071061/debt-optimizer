@@ -178,9 +178,9 @@ def simulate_repayment(debts, extra_payment, strategy, lump_sum=0, lump_sum_mont
         month_interest = 0
         extra = extra_payment
 
-   for idx, d in enumerate(debts):
-    if d["balance"] <= 0:
-        continue
+       for idx, d in enumerate(debts):
+         if d["balance"] <= 0:
+            continue
 
     # Apply interest
     interest = d["balance"] * (d["rate"]/100/12)
@@ -202,13 +202,13 @@ def simulate_repayment(debts, extra_payment, strategy, lump_sum=0, lump_sum_mont
     # Reduce balance
     d["balance"] = max(0, d["balance"] - pay)
 
-    total_interest_paid += month_interest
-    total_balance = sum(d["balance"] for d in debts)
-    schedule.append({"Month": month, "Total Balance": total_balance, "Interest Paid": month_interest})
-    month += 1
+total_interest_paid += month_interest
+total_balance = sum(d["balance"] for d in debts)
+schedule.append({"Month": month, "Total Balance": total_balance, "Interest Paid": month_interest})
+month += 1
 
-    df = pd.DataFrame(schedule)
-    return df, total_interest_paid
+df = pd.DataFrame(schedule)
+return df, total_interest_paid
 
 # --- Run Single Strategy ---
 if st.button("Run Optimizer"):
