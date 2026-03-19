@@ -71,7 +71,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 # --- Page Title ---
-st.title("💰AI Debt Repayment Optimizer")
+st.title("💰AI-Powered Debt Repayment Optimizer")
 st.write("Enter your debts and income details to generate optimized repayment strategies.")
 # --- User Profile Section ---
 st.header("👤 User Profile")
