@@ -160,12 +160,7 @@ def get_repayment_order(debts, strategy):
         debts_copy.sort(key=lambda d: d["rate"], reverse=True)
     elif strategy == "AI Optimized":
         # Hybrid: prioritize very high interest first, then smaller balances
-        debts_copy.sort(
-    key=lambda d: (
-        -d["rate"] if d["rate"] >= 15 else 0,  # prioritize high interest
-        d["balance"]                           # then smallest balance
-    )
-)
+        debts_copy.sort(key=lambda d: (d["rate"], -d["balance"]), reverse=True)
     return debts_copy
 
 # --- Repayment Simulation Function with Interest Tracking ---
@@ -181,22 +176,31 @@ def simulate_repayment(debts, extra_payment, strategy, lump_sum=0, lump_sum_mont
 
         payment = extra_payment
         month_interest = 0
-        for d in debts:
-            if d["balance"] <= 0:
-                continue
-            # Apply interest
-            interest = d["balance"] * (d["rate"]/100/12)
-            d["balance"] += interest
-            month_interest += interest
+        extra = extra_payment
 
-            # Apply payments
-            pay = d["min_payment"]
-            if payment > 0:
-                pay += payment
-                payment = 0
-            if lump_sum > 0 and lump_sum_month == month:
-                pay += lump_sum
-            d["balance"] = max(0, d["balance"] - pay)
+for idx, d in enumerate(debts):
+    if d["balance"] <= 0:
+        continue
+
+    # Apply interest
+    interest = d["balance"] * (d["rate"]/100/12)
+    d["balance"] += interest
+    month_interest += interest
+
+    pay = d["min_payment"]
+
+    # Apply extra payment properly
+    if extra > 0:
+        additional = min(extra, d["balance"])
+        pay += additional
+        extra -= additional
+
+    # Apply lump sum ONLY to first priority loan
+    if lump_sum > 0 and lump_sum_month == month and idx == 0:
+        pay += lump_sum
+
+    # Reduce balance
+    d["balance"] = max(0, d["balance"] - pay)
 
         total_interest_paid += month_interest
         total_balance = sum(d["balance"] for d in debts)
